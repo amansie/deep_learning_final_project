@@ -12,7 +12,7 @@ We used the Allen Institute cell atlas dataset, accessible from the [Gene Expres
 
 ## Models
 
-###Linear Regression
+### Linear Regression
 
 [This script](linear_regression_ka2461.py) fits linear regressions for each output gene in the preprocessed data.
 
