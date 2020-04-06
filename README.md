@@ -25,4 +25,4 @@ We used the Allen Institute cell atlas dataset, accessible from the [Gene Expres
 We have implemented two CNNs (see this [folder](cnn)). The [1-D convolutional network](cnn/1d_cnn.ipynb) performs convolutions on a 1-D vector of gene expressions, while [VGG16](cnn/vgg16.ipynb) arranges the input data as a 37x37 matrix to feed into the VGG16 model.
 
 ### Graph Convolutional Network
-[This notebook](gcn_gene.ipynb) implemets GCN on our gene data set
+[This notebook](GCN_gene_inference_1.ipynb) implemets GCN on our gene data set
