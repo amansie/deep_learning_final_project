@@ -19,30 +19,30 @@ CUDA_DEVICE = torch.device('cuda')
 #returns an edge list
 #no genes in gene_set are allowed to be in the returned edge_List except the filterGene
 #TODO: test when we have the google credits running
-def filterEdgeListByGene(filterGene, gene_edge, gene_set):
+def filterEdgeListByGene(filterGene, gene_edge, gene_set, node_map):
     edge_list = []
-    filtered_gene_set = set(gene_set)
-    filtered_gene_set.remove(filterGene)
-    for k, i in enumerate(gene_edge): 
+    gene_set.remove(filterGene)
+#     for k, i in enumerate(gene_edge): 
         
-        letter_count = 0
-        while i[letter_count] is not '|': 
-            letter_count += 1
+#         letter_count = 0
+#         while i[letter_count] is not '|': 
+#             letter_count += 1
             
-        first_gene = i[:letter_count]
-        second_gene = i[letter_count+1:]
-        
+#         first_gene = i[:letter_count]
+#         second_gene = i[letter_count+1:]
+
+    for first_gene, second_gene in gene_edge:  # use the edge list uploaded to GitHub
         try: 
             node_map[first_gene]
             node_map[second_gene]
-            if(first_gene in filtered_gene_set or second_gene in filtered_gene_set ):
+            if(first_gene in gene_set or second_gene in gene_set):
                 #do not add to edge list
                 continue
               
             edge_list.append([node_map[first_gene], node_map[second_gene]])
             edge_list.append([node_map[second_gene], node_map[first_gene]])
         except: 
-            print('could not fine gene name at %dth line of gene edge' %k)
+            print('could not find genes in edge {}/{}'.format(first_gene, second_gene))
     return edge_list
 
 
@@ -50,13 +50,17 @@ def filterEdgeListByGene(filterGene, gene_edge, gene_set):
 # filename: filename for gene expression data to load (.csv file)
 # gene: gene name to predict as output
 # edge_list: list of edges, in the format that torch_geometric.Data.data takes
-def data_loader(filename, gene, node_map, edge_list, multiplier=1e5):
+def data_loader(filename, gene, node_map, edge_list, multiplier=1e5, cat=None):
     # get order of genes, based on node_map
     gene_order = [k for k, _ in sorted(node_map.items(), key=lambda item: item[1])]
 
     loader = []
-
-    reader = pd.read_csv(filename, header=0, index_col=0)[gene_order]
+    
+    reader = pd.read_csv(filename, header=0, index_col=0)
+    if not cat is None:
+        reader_cat = pd.read_csv(cat, header=0, index_col=0)
+        reader = pd.concat([reader, reader_cat], axis=1)
+    reader = reader[gene_order]
     target_expression_levels = deepcopy(reader[gene])
     reader.loc[:,gene] = 0.0
     reader = reader * multiplier
@@ -64,7 +68,8 @@ def data_loader(filename, gene, node_map, edge_list, multiplier=1e5):
         # iterate through examples (cells)        
         # create graph
         data = Data(x=torch.tensor(row, dtype=torch.float).view(-1, 1), 
-                    y=target_expression_level, edge_index=edge_list)
+                    y=torch.tensor(target_expression_level).view(1, 1),
+                    edge_index=edge_list)
         loader.append(data)
     return loader
 
@@ -106,7 +111,8 @@ def MSError(pred_, y):
 
 def train(model, train_loader, batch_size): 
     model.train()
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+#     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
     loss_fn = nn.MSELoss()
     
     loss_all = 0
