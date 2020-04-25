@@ -105,7 +105,7 @@ class MultiGCNInferenceNetwork(nn.Module):
         self.fc2   = nn.Linear(8, 1)
     
     def forward(self, graph): 
-        x, edges, y, gene_node = graph.x, graph.edge_index, graph.y, graph.gene_node
+        x, edges, y, gene_node = graph.x, graph.edge_index, graph.y, graph.gene_node.view(-1)
         
         # 2 layer convolution on the whole graph
         x = F.relu(self.conv1(x, edges))
@@ -113,14 +113,41 @@ class MultiGCNInferenceNetwork(nn.Module):
         x = F.relu(self.conv2(x, edges))
 
         # isolate gene of interest, and feed into MLP for regression
-        temp_x = x[gene_node.view(-1)[0]].view(1, 16)
+        temp_x = x[gene_node.view[0]].view(1, 16)
         for i in range(y.size(0)-1):
-            temp_x = torch.cat((temp_x, x[gene_node.view(-1)[i+1]+(i+1)*1431].view(1, 16)))
+            temp_x = torch.cat((temp_x, x[gene_node.view[i+1]+(i+1)*1431].view(1, 16)))
             
         temp_x = F.relu(self.fc1(temp_x))
         temp_x = self.fc2(temp_x)
             
         return temp_x
+
+
+class MultiGCNInferenceNetwork2(nn.Module): 
+    def __init__(self, d=1): 
+        super(MultiGCNInferenceNetwork2, self).__init__()
+        self.conv1 = GCNConv(d, 16)
+        self.conv2 = GCNConv(16, 16)
+        self.fc1   = nn.Linear(16, 8)
+        self.fc2   = nn.Linear(8, 1)
+    
+    def forward(self, graph): 
+        x, edges, y, gene_node = graph.x, graph.edge_index, graph.y, graph.gene_node.view(-1)
+        
+        # 2 layer convolution on the whole graph
+        x = F.relu(self.conv1(x, edges))
+        x = F.dropout(x, p=0.4)
+        x = F.relu(self.conv2(x, edges))
+        
+        # isolate gene of interest
+        output_indices = torch.tensor(range(graph.num_graphs)).to(device=CUDA_DEVICE) * 1431 + gene_node
+        x = torch.index_select(x, dim=0, index=output_indices)
+
+        # MLP on output nodes
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+
+        return x
 
 
 def multi_train(model, train_loader, batch_size): 
