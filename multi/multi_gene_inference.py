@@ -26,7 +26,8 @@ RNG = default_rng()
 def filterEdgeListByGene(filterGene, gene_edge, gene_set, node_map):
     gene_set = deepcopy(gene_set)
     edge_list = []
-    gene_set.remove(filterGene)
+    if filterGene is not None:
+        gene_set.remove(filterGene)
 #     for k, i in enumerate(gene_edge): 
         
 #         letter_count = 0
@@ -88,7 +89,7 @@ def multi_data_loader(filename, genes, node_map, gene_edge, cat=None):
             target_expression_level = torch.tensor(row[gene]).view(1, 1)
             row_copy.loc[gene] = 0.0
             # create graph
-            data = Data(x=torch.tensor(row, dtype=torch.float).view(-1, 1),
+            data = Data(x=torch.tensor(row_copy, dtype=torch.float).view(-1, 1),
                         y=target_expression_level,
                         edge_index=edge_lists[gene],
                         gene_node=node_map[gene])
