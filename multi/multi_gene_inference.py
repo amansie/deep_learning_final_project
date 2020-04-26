@@ -26,8 +26,7 @@ RNG = default_rng()
 def filterEdgeListByGene(filterGene, gene_edge, gene_set, node_map):
     gene_set = deepcopy(gene_set)
     edge_list = []
-    if filterGene is not None:
-        gene_set.remove(filterGene)
+    gene_set.remove(filterGene)
 #     for k, i in enumerate(gene_edge): 
         
 #         letter_count = 0
@@ -63,7 +62,7 @@ def filterEdgeListByGene(filterGene, gene_edge, gene_set, node_map):
 # node_map: dictionary mapping gene name to node number
 # edge_list: list of gene name pairs, representing edges
 # returns a list of pytorch_geometric Data objects
-def multi_data_loader(filename, genes, node_map, gene_edge, cat=None):
+def multi_data_loader(filename, genes, node_map, gene_edge, cat=None, sep_genes=False):
     # get order of genes, based on node_map
     gene_order = [k for k, _ in sorted(node_map.items(), key=lambda item: item[1])]
 
@@ -81,20 +80,29 @@ def multi_data_loader(filename, genes, node_map, gene_edge, cat=None):
         edge_lists[gene] = torch.tensor(edge_list, dtype=torch.long).t()
 
     loader = []
-    # iterate through examples (cells)
-    for _, row in reader.iterrows():
-        # iterate through output genes
-        for gene in genes:
+    if sep_genes:
+        organized_loader = dict()
+    else:
+        organized_loader = None
+
+    # iterate through output genes
+    for gene in genes:
+        # iterate through examples (cells)
+        for _, row in reader.iterrows():
             row_copy = deepcopy(row)
             target_expression_level = torch.tensor(row[gene]).view(1, 1)
             row_copy.loc[gene] = 0.0
             # create graph
-            data = Data(x=torch.tensor(row_copy, dtype=torch.float).view(-1, 1),
+            data = Data(x=torch.tensor(row, dtype=torch.float).view(-1, 1),
                         y=target_expression_level,
                         edge_index=edge_lists[gene],
                         gene_node=node_map[gene])
             loader.append(data)
-    return loader
+
+        if sep_genes:
+            organized_loader[gene] = loader
+            loader = []
+    return organized_loader or loader
 
 
 class MultiGCNInferenceNetwork(nn.Module): 
