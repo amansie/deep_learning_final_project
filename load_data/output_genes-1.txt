@@ -4,8 +4,6 @@ Gusb
 Lamp5
 Mbp
 Pvalb
-Rorb
 S100b
 Slc30a3
 Snca
-Mapt
